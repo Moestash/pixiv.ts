@@ -46,10 +46,11 @@ export class Util {
     /**
      * Attempts to detect if The illust is AI.
      */ 
-    public isAI = (illust: PixivIllust, AIUsers: number[] = []) => {
-        let AITags = ["AIイラスト", "AI生成", "StableDiffusion", "NovelAI"]
+    public isAI = (illust: PixivIllust, AITags: string[] = [], AIUsers: number[] = []) => {
+        const defaultAITags = ["AIイラスト", "AI生成", "StableDiffusion", "NovelAI"]
         const defaultAIUsers = [87833254]
         AIUsers = [...defaultAIUsers, ...AIUsers]
+        AITags = [...defaultAITags, ...AITags]
         const tagNames = illust.tags.map((t: any) => t.name)
 
         return (

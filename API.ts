@@ -2,11 +2,13 @@ import {ParsedUrlQueryInput, stringify} from "querystring"
 import {URLSearchParams} from "url"
 import {PixivAPIResponse} from "./types/ApiTypes"
 import {PixivAuthData, PixivAuthHeaders, PixivParams, PixivWebParams} from "./types/index"
+import * as crypto from "crypto"
 
 const oauthURL = "https://oauth.secure.pixiv.net/auth/token"
 const appURL = "https://app-api.pixiv.net/"
 const webURL = "https://www.pixiv.net/"
-const publicURL = "https://public-api.secure.pixiv.net/"
+
+const hashSecret = "28c1fdd170a5204386cb1313c7077b34f83e4aaf4aa829ce78c231e05b0bae2c"
 
 export default class API {
     private readonly headers = {"user-agent": "PixivIOSApp/7.7.5 (iOS 13.2.0; iPhone XR)", "referer": "https://www.pixiv.net/", "accept-language": "English"}
@@ -25,8 +27,14 @@ export default class API {
         const expired = (Date.now() - this.loginTime) > (this.expirationTime * 900)
         if (expired) {
             this.data.grant_type = "refresh_token"
-            const result = await fetch(oauthURL, {method: "POST", body: stringify(this.data as unknown as ParsedUrlQueryInput),
-            headers: this.headers}).then((r) => r.json()) as PixivAPIResponse
+            const clientTime = new Date().toISOString().slice(0, -5) + "+00:00"
+            const clientHash = crypto.createHash("md5").update(String(clientTime + hashSecret)).digest("hex")
+            this.authHeaders["x-client-time"] = clientTime
+            this.authHeaders["x-client-hash"] = clientHash
+            const result = await fetch(oauthURL, {method: "POST", 
+                body: stringify(this.data as unknown as ParsedUrlQueryInput),
+                headers: this.authHeaders as any
+            }).then((r) => r.json()) as PixivAPIResponse
             this.accessToken = result.response.access_token
             this.refreshToken = result.response.refresh_token
             this.authHeaders.authorization = `Bearer ${this.accessToken}`
